@@ -2,6 +2,7 @@
   "name": "appteka-site-demo",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.11.1",
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
@@ -9,6 +10,6 @@
     "generate": "nuxt generate"
   },
   "devDependencies": {
-    "nuxt": "^3.14.0"
+    "nuxt": "3.21.9"
   }
 }
