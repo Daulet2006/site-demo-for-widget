@@ -6,7 +6,7 @@ const apiBase = process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
 export default defineNuxtConfig({
   nitro: {
     preset: "cloudflare_module"
-  }
+  },
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
   app: {
