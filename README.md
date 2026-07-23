@@ -1,3 +1,14 @@
+## Live Demo
+
+**Static Preview**
+
+👉 https://agent-6a61c26ff8d6bbd458a9--gleeful-dodol-173100.netlify.app/
+
+> This deployment is intended only as a **static preview** for demonstrating the widget UI and basic integration. It is not a production environment. Netlify Deploy Preview URLs with the `agent-...` prefix are temporary preview deployments generated for review purposes. :contentReference[oaicite:0]{index=0}
+
+---
+
+
 # AppTeka — demo site (Nuxt 3)
 
 Minimal storefront that embeds the AppTeka support widget straight from the CDN
