@@ -6,6 +6,7 @@ const apiBase = process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
 export default defineNuxtConfig({
   compatibilityDate: '2026-07-23',
   devtools: { enabled: false },
+
   app: {
     head: {
       htmlAttrs: { lang: 'ru' },
@@ -26,4 +27,6 @@ export default defineNuxtConfig({
       ],
     },
   },
+
+  modules: ['@netlify/nuxt'],
 })

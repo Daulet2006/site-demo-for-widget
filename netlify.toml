@@ -2,5 +2,3 @@
 command = "pnpm generate"
 publish = ".output/public"
 
-[[plugins]]
-package = "@netlify/plugin-nuxt"
