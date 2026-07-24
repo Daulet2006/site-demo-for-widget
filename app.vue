@@ -16,7 +16,7 @@ function defaults() {
     colors: {} as Record<string, string>,
     texts: null as any,
     profile: null as any,
-    _beta: false, _sound: true,
+    _beta: false, _sound: true, _launcher: true,
   }
 }
 const cfg = reactive(defaults())
@@ -31,6 +31,7 @@ function buildInit() {
   if (cfg.texts) c.texts = cfg.texts
   if (cfg.profile) c.profile = cfg.profile
   if (!cfg._beta) c.betaNotice = false
+  if (!cfg._launcher) c.launcher = false // headless: без своей плавающей кнопки — хост сам ставит триггер
   return c
 }
 
@@ -55,16 +56,26 @@ function merge(set: Record<string, any>) {
     if (k in set) (cfg as any)[k] = set[k]
   rebuild()
 }
-function setFlag(flag: '_beta' | '_sound', val: boolean) { (cfg as any)[flag] = val; rebuild() }
+function setFlag(flag: '_beta' | '_sound' | '_launcher', val: boolean) {
+  (cfg as any)[flag] = val
+  rebuild(!(flag === '_launcher' && !val)) // headless-off: не открывать, показать что своей кнопки нет
+}
 function act(a: 'open' | 'close' | 'toggle') {
   const A = widget(); if (!A) return
   if (a === 'open') A.open(); else if (a === 'close') A.close(); else A.toggle ? A.toggle() : A.open()
+  if (a !== 'close') unread.value = 0 // открыли — сбрасываем бейдж на своей кнопке
 }
 function doIdentify(p: Record<string, unknown>) {
   const A = widget(); if (!A) return
   A.__reset?.(); A.init(buildInit()); A.open(); A.identify(p)
 }
 function resetAll() { Object.assign(cfg, defaults()); cfg.colors = {}; rebuild() }
+
+/* непрочитанные — для бейджа на своей кнопке (headless) */
+const unread = ref(0)
+onMounted(() => {
+  window.addEventListener('appteka:unread', (e: any) => { unread.value = e.detail?.unread ?? 0 })
+})
 
 /* свой цвет */
 const pick = ref('#e11d48')
@@ -82,8 +93,8 @@ function applyPick() {
 type Chip = { label: string; color?: string; value?: string; set?: Record<string, any>; identify?: Record<string, unknown> }
 type Section = {
   n: string; title: string; desc: string; lang?: string; code?: string
-  type: 'chips' | 'pick' | 'toggle' | 'actions' | 'code' | 'matrix'
-  group?: string; chips?: Chip[]; flag?: '_beta' | '_sound'
+  type: 'chips' | 'pick' | 'toggle' | 'actions' | 'code' | 'matrix' | 'headless'
+  group?: string; chips?: Chip[]; flag?: '_beta' | '_sound' | '_launcher'
 }
 
 const sections: Section[] = [
@@ -250,7 +261,24 @@ AppTeka.toggle()
 if (AppTeka.isOpen) { /* ... */ }`,
   },
   {
-    n: '15', title: 'Все возможности', type: 'matrix',
+    n: '15', title: 'Своя кнопка «Служба Поддержки» (headless)', type: 'headless', flag: '_launcher',
+    desc: 'launcher:false — виджет прячет свою плавающую кнопку. Ставите её сами: пункт меню, иконку чата, строку в настройках. Открытие — AppTeka.open(). Бейдж — AppTeka.unread + событие appteka:unread.',
+    code:
+`// 1. init без своей кнопки
+AppTeka.init({ apiBase: "${API_BASE}", launcher: false })
+
+// 2. ваша кнопка / пункт меню открывает чат
+supportBtn.onclick = () => AppTeka.open()
+
+// 3. бейдж непрочитанных на вашей кнопке
+addEventListener("appteka:unread", e => {
+  badge.textContent = e.detail.unread   // или AppTeka.unread
+})
+
+// мобилка (WebView): нативная кнопка -> webview.evaluate("AppTeka.open()")`,
+  },
+  {
+    n: '16', title: 'Все возможности', type: 'matrix',
     desc: 'Что виджет умеет сегодня — из коробки, одним файлом.',
   },
 ]
@@ -261,7 +289,7 @@ const FEATURES = [
   'Кастомные цвета', 'Кастомные тексты', 'CSS-переменные', 'Анимации open/close', 'Свой цвет (любой HEX)',
   'Экран Beta', 'Эскалация на оператора', 'Звук + вибрация', 'Уведомления (badge)', 'Мобильный (fullscreen)',
   'Адаптивность', 'open / close / toggle', 'window.AppTeka API', 'Vanilla JS', 'React · Vue · Nuxt · Next',
-  'CDN, один файл',
+  'CDN, один файл', 'Headless (своя кнопка)', 'AppTeka.unread + событие',
 ]
 
 /* ------------ подсветка кода ------------ */
@@ -345,6 +373,17 @@ function onChip(v: Chip) { if (v.identify) doIdentify(v.identify); else merge(v.
         <button class="chip" @click="act('toggle')">Toggle</button>
       </div>
 
+      <!-- headless: своя кнопка -->
+      <div v-else-if="s.type === 'headless'" class="variants headlessrow">
+        <button class="chip" :class="{ on: cfg._launcher }" @click="setFlag('_launcher', true)">Кнопка виджета (FAB)</button>
+        <button class="chip" :class="{ on: !cfg._launcher }" @click="setFlag('_launcher', false)">Своя кнопка (headless)</button>
+        <span class="sep" />
+        <button class="hostbtn" @click="act('open')">
+          <span class="hb-ic">🎧</span> Служба Поддержки
+          <span v-if="unread" class="hb-badge">{{ unread }}</span>
+        </button>
+      </div>
+
       <!-- matrix -->
       <div v-else-if="s.type === 'matrix'" class="matrix">
         <div v-for="f in FEATURES" :key="f" class="feat"><span class="ic">✓</span>{{ f }}</div>
@@ -420,6 +459,16 @@ code { font-family: var(--mono); font-size: .92em; }
 .cpick { width: 42px; height: 34px; padding: 0; border: 1px solid var(--border); border-radius: 9px; background: none; cursor: pointer; }
 .chex { width: 100px; font: 600 13px var(--mono); padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; }
 .cprev { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border); }
+
+.headlessrow { gap: 10px; }
+.headlessrow .sep { width: 1px; height: 26px; background: var(--border); margin: 0 4px; }
+.hostbtn { position: relative; display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; font: 600 13.5px var(--sans);
+  padding: 10px 18px; border-radius: 11px; box-shadow: 0 4px 14px rgba(22,163,74,.32); }
+.hostbtn:hover { filter: brightness(1.05); }
+.hostbtn .hb-ic { font-size: 15px; }
+.hostbtn .hb-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 10px; background: #ef4444; color: #fff; font: 700 11px/20px var(--sans); text-align: center; }
 
 .matrix { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 9px; margin: 16px 0 0 44px; }
 .feat { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border: 1px solid var(--border);
