@@ -4,7 +4,7 @@
 // анимацию и т.д. Каждое действие пересоздаёт живой виджет через публичный API:
 // AppTeka.__reset() + AppTeka.init(). Никаких выдуманных опций — только то, что есть.
 
-const API_BASE = 'https://api.appteka.app'
+const API_BASE = 'http://test-aws-server.duckdns.org'
 
 function widget(): any { return (window as any).AppTeka }
 
